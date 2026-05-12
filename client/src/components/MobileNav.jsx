@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useMotionValueEvent, useScroll, AnimatePresence } from 'framer-motion';
-import { Home, FolderKanban, Code2, Target, BarChart3, MoreHorizontal, ListTodo, BookOpen, Map, Bookmark, Settings, Bell, LogOut } from 'lucide-react';
+import { Home, FolderKanban, Code2, Target, BarChart3, MoreHorizontal, ListTodo, BookOpen, Map, Bookmark, Settings, Bell, LogOut, Timer, FileCode2, FolderGit2, Columns3, StickyNote, Brain, Repeat, Calendar, Award, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -20,6 +20,16 @@ const moreLinks = [
   { to: '/roadmap', icon: <Map size={16} />, label: 'Roadmap', color: '#00f2fe' },
   { to: '/resources', icon: <Bookmark size={16} />, label: 'Resources', color: '#a78bfa' },
   { to: '/analytics', icon: <BarChart3 size={16} />, label: 'Analytics', color: '#f59e0b' },
+  { to: '/pomodoro', icon: <Timer size={16} />, label: 'Pomodoro', color: '#ef4444' },
+  { to: '/snippets', icon: <FileCode2 size={16} />, label: 'Snippets', color: '#43e97b' },
+  { to: '/github', icon: <FolderGit2 size={16} />, label: 'GitHub', color: '#a78bfa' },
+  { to: '/kanban', icon: <Columns3 size={16} />, label: 'Kanban', color: '#f093fb' },
+  { to: '/notes', icon: <StickyNote size={16} />, label: 'Notes', color: '#f59e0b' },
+  { to: '/dsa', icon: <Brain size={16} />, label: 'DSA Prep', color: '#06b6d4' },
+  { to: '/habits', icon: <Repeat size={16} />, label: 'Habits', color: '#43e97b' },
+  { to: '/review', icon: <Calendar size={16} />, label: 'Review', color: '#f59e0b' },
+  { to: '/certifications', icon: <Award size={16} />, label: 'Certs', color: '#f59e0b' },
+  { to: '/feedback', icon: <MessageSquare size={16} />, label: 'Feedback', color: '#4facfe' },
   { to: '/notifications', icon: <Bell size={16} />, label: 'Notifications', color: '#f5576c' },
   { to: '/settings', icon: <Settings size={16} />, label: 'Settings', color: '#71717a' },
 ];
@@ -74,17 +84,19 @@ export default function MobileNav() {
 
             <div className="flex items-center gap-2">
               <NotificationPanel />
-              <motion.div whileTap={{ scale: 0.85 }}
-                className="relative w-8 h-8 rounded-xl overflow-hidden cursor-pointer">
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center text-[10px] font-bold text-white">
-                    {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DV'}
-                  </div>
-                )}
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#43e97b] border-2 border-[#0c0c14]" />
-              </motion.div>
+              <NavLink to="/settings">
+                <motion.div whileTap={{ scale: 0.85 }}
+                  className="relative w-8 h-8 rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center text-[10px] font-bold text-white">
+                      {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DV'}
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#43e97b] border-2 border-[#0c0c14]" />
+                </motion.div>
+              </NavLink>
             </div>
           </div>
         </div>

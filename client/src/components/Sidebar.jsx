@@ -1,11 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, FolderKanban, Code2, BookOpen, Target, GitBranch, Activity, Cpu, Command, Star, Terminal, ListTodo, Map, Bookmark, BarChart3, Settings, LogOut } from 'lucide-react';
+import { Home, FolderKanban, Code2, BookOpen, Target, GitBranch, Activity, Cpu, Command, Star, Terminal, ListTodo, Map, Bookmark, BarChart3, Settings, LogOut, Timer, FileCode2, FolderGit2, Columns3, StickyNote, Brain, Repeat, Calendar, Award, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import NotificationPanel from './NotificationPanel';
 import ConfirmModal from './ConfirmModal';
+import SearchModal from './SearchModal';
 
 const links = [
   { to: '/', icon: <Home size={15} />, label: 'Dashboard', color: '#667eea', hotkey: '1' },
@@ -17,6 +18,16 @@ const links = [
   { to: '/roadmap', icon: <Map size={15} />, label: 'Roadmap', color: '#00f2fe', hotkey: '7' },
   { to: '/resources', icon: <Bookmark size={15} />, label: 'Resources', color: '#a78bfa', hotkey: '8' },
   { to: '/analytics', icon: <BarChart3 size={15} />, label: 'Analytics', color: '#f59e0b', hotkey: '9' },
+  { to: '/pomodoro', icon: <Timer size={15} />, label: 'Pomodoro', color: '#ef4444', hotkey: 'P' },
+  { to: '/snippets', icon: <FileCode2 size={15} />, label: 'Snippets', color: '#43e97b', hotkey: 'S' },
+  { to: '/github', icon: <FolderGit2 size={15} />, label: 'GitHub', color: '#a78bfa', hotkey: 'G' },
+  { to: '/kanban', icon: <Columns3 size={15} />, label: 'Kanban', color: '#f093fb', hotkey: 'K' },
+  { to: '/notes', icon: <StickyNote size={15} />, label: 'Notes', color: '#f59e0b', hotkey: 'N' },
+  { to: '/dsa', icon: <Brain size={15} />, label: 'DSA Prep', color: '#06b6d4', hotkey: 'D' },
+  { to: '/habits', icon: <Repeat size={15} />, label: 'Habits', color: '#43e97b', hotkey: 'H' },
+  { to: '/review', icon: <Calendar size={15} />, label: 'Review', color: '#f59e0b', hotkey: 'W' },
+  { to: '/certifications', icon: <Award size={15} />, label: 'Certs', color: '#f59e0b', hotkey: 'C' },
+  { to: '/feedback', icon: <MessageSquare size={15} />, label: 'Feedback', color: '#4facfe', hotkey: 'F' },
   { to: '/settings', icon: <Settings size={15} />, label: 'Settings', color: '#71717a', hotkey: '0' },
 ];
 
@@ -124,9 +135,17 @@ export default function Sidebar() {
   const [time, setTime] = useState(new Date());
   const [hoveredLink, setHoveredLink] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { user, logout } = useAuth();
 
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+
+  // ⌘K shortcut
+  useEffect(() => {
+    const handler = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setSearchOpen(s => !s); } };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[270px] bg-[#0a0a0f]/95 backdrop-blur-3xl border-r border-white/[0.04] flex flex-col z-50 select-none overflow-hidden">
@@ -158,7 +177,7 @@ export default function Sidebar() {
       {/* Command bar */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mx-4 mb-3 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-primary/20 transition-all cursor-pointer group flex-1">
+          <div onClick={() => setSearchOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-primary/20 transition-all cursor-pointer group flex-1">
             <Command size={11} className="text-zinc-600 group-hover:text-primary transition-colors" />
             <span className="text-[10px] text-zinc-600 flex-1 font-mono">search...</span>
             <span className="text-[8px] text-zinc-700 bg-white/[0.04] px-1.5 py-0.5 rounded font-mono border border-white/[0.04]">⌘K</span>
@@ -167,8 +186,10 @@ export default function Sidebar() {
         </div>
       </motion.div>
 
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+
       {/* Navigation */}
-      <nav className="flex-1 px-3 relative z-10">
+      <nav className="flex-1 px-3 relative z-10 overflow-y-auto overflow-x-hidden">
         <div className="flex items-center gap-2 px-3 mb-2">
           <Terminal size={9} className="text-zinc-600" />
           <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-[0.15em]">workspace</span>
@@ -178,6 +199,7 @@ export default function Sidebar() {
             <motion.div key={link.to} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15 + i * 0.07, type: "spring", stiffness: 120, damping: 15 }}>
               <NavLink to={link.to}
+                data-tour={link.to.replace('/', '') || 'dashboard'}
                 onMouseEnter={() => setHoveredLink(link.to)}
                 onMouseLeave={() => setHoveredLink(null)}
                 className={({ isActive }) => `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 ${isActive ? 'bg-white/[0.05]' : 'hover:bg-white/[0.02]'}`}>
@@ -210,27 +232,6 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* 3D Orb */}
-      <div className="px-3 mb-2 relative z-10">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-          <AnimatedOrb />
-        </motion.div>
-      </div>
-
-      {/* Terminal */}
-      <div className="px-3 mb-2 relative z-10">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}>
-          <LiveTerminal />
-        </motion.div>
-      </div>
-
-      {/* Code block */}
-      <div className="px-3 mb-2 relative z-10">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}>
-          <CodeBlock />
-        </motion.div>
-      </div>
-
       {/* Git + Stats */}
       <div className="border-t border-white/[0.03] relative z-10">
         <div className="flex items-center justify-between px-4 py-2">
@@ -248,14 +249,16 @@ export default function Sidebar() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
         className="px-4 py-3 border-t border-white/[0.03] relative z-10">
         <div className="flex items-center gap-2.5">
-          {user?.photoURL ? (
-            <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-8 h-8 rounded-lg object-cover" />
-          ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
-              {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DV'}
-            </div>
-          )}
+          <NavLink to="/settings">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-8 h-8 rounded-lg object-cover hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer"
+                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
+                {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DV'}
+              </div>
+            )}
+          </NavLink>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold text-zinc-200 truncate">{user?.displayName || 'Developer'}</p>
             <p className="text-[8px] text-zinc-600 font-mono truncate">{user?.email}</p>

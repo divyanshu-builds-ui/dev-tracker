@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './components/AuthContext';
+import GlobalLoader from './components/LoadingProvider';
+import OnboardingTour from './components/OnboardingTour';
 import Logo from './components/Logo';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
@@ -16,8 +18,18 @@ import Roadmap from './pages/Roadmap';
 import Resources from './pages/Resources';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
-import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Notifications from './pages/Notifications';
+import Pomodoro from './pages/Pomodoro';
+import Snippets from './pages/Snippets';
+import GitHubPage from './pages/GitHub';
+import Kanban from './pages/Kanban';
+import Notes from './pages/Notes';
+import DSATracker from './pages/DSATracker';
+import Habits from './pages/Habits';
+import WeeklyReview from './pages/WeeklyReview';
+import Certifications from './pages/Certifications';
+import Feedback from './pages/Feedback';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -42,6 +54,16 @@ function AnimatedRoutes() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/pomodoro" element={<Pomodoro />} />
+          <Route path="/snippets" element={<Snippets />} />
+          <Route path="/github" element={<GitHubPage />} />
+          <Route path="/kanban" element={<Kanban />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/dsa" element={<DSATracker />} />
+          <Route path="/habits" element={<Habits />} />
+          <Route path="/review" element={<WeeklyReview />} />
+          <Route path="/certifications" element={<Certifications />} />
+          <Route path="/feedback" element={<Feedback />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -100,11 +122,12 @@ function AppContent() {
   );
 
   // Not logged in
-  if (!user) return <Login />;
+  if (!user) return <LandingPage />;
 
   // Authenticated
   return (
     <div className="flex">
+      <OnboardingTour />
       <div className="hidden lg:block">
         <Sidebar />
       </div>
@@ -129,6 +152,7 @@ export default function App() {
         }} />
         <div className="animated-bg" />
         <div className="noise" />
+        <GlobalLoader />
         <AppContent />
       </BrowserRouter>
     </AuthProvider>
