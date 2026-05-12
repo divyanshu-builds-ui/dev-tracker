@@ -1,0 +1,127 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Premium dark gradient background -->
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="50%" stop-color="#0a0a14"/>
+      <stop offset="100%" stop-color="#06060e"/>
+    </linearGradient>
+
+    <!-- Violet to blue for D -->
+    <linearGradient id="dGrad" x1="80" y1="120" x2="280" y2="400">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <!-- Cyan to blue for G -->
+    <linearGradient id="gGrad" x1="250" y1="100" x2="450" y2="420">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Strong glow -->
+    <filter id="glowStrong">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Border gradient -->
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="512" y2="512">
+      <stop offset="0%" stop-color="rgba(167,139,250,0.3)"/>
+      <stop offset="50%" stop-color="rgba(6,182,212,0.2)"/>
+      <stop offset="100%" stop-color="rgba(139,92,246,0.1)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  
+  <!-- Border glow -->
+  <rect x="2" y="2" width="508" height="508" rx="98" fill="none" stroke="url(#borderGrad)" stroke-width="2"/>
+
+  <!-- Code grid dots pattern -->
+  <g opacity="0.15">
+    <circle cx="60" cy="60" r="1.5" fill="#a78bfa"/>
+    <circle cx="100" cy="60" r="1.5" fill="#a78bfa"/>
+    <circle cx="140" cy="60" r="1.5" fill="#a78bfa"/>
+    <circle cx="60" cy="100" r="1.5" fill="#a78bfa"/>
+    <circle cx="100" cy="100" r="1.5" fill="#a78bfa"/>
+    <circle cx="412" cy="412" r="1.5" fill="#22d3ee"/>
+    <circle cx="452" cy="412" r="1.5" fill="#22d3ee"/>
+    <circle cx="412" cy="452" r="1.5" fill="#22d3ee"/>
+    <circle cx="452" cy="452" r="1.5" fill="#22d3ee"/>
+  </g>
+
+  <!-- Opening bracket { with glow -->
+  <g filter="url(#glow)" opacity="0.25">
+    <path d="M90 180C90 180 70 180 70 200L70 240C70 256 55 256 55 256C55 256 70 256 70 272L70 312C70 332 90 332 90 332" stroke="#a78bfa" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- Closing bracket } with glow -->
+  <g filter="url(#glow)" opacity="0.25">
+    <path d="M422 180C422 180 442 180 442 200L442 240C442 256 457 256 457 256C457 256 442 256 442 272L442 312C442 332 422 332 422 332" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- Main D letter - code style, bold -->
+  <g filter="url(#glow)">
+    <path d="M135 145L135 367" stroke="url(#dGrad)" stroke-width="38" stroke-linecap="round"/>
+    <path d="M135 145H195C275 145 315 195 315 256C315 317 275 367 195 367H135" stroke="url(#dGrad)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Main G letter - overlapping, code accent color -->
+  <g filter="url(#glow)">
+    <path d="M350 175C335 150 305 135 270 135" stroke="url(#gGrad)" stroke-width="34" stroke-linecap="round" fill="none"/>
+    <path d="M270 135C220 135 195 180 195 220" stroke="url(#gGrad)" stroke-width="34" stroke-linecap="round" fill="none" opacity="0"/>
+    <path d="M380 195C395 225 400 260 390 295C375 340 340 370 295 378C260 384 230 374 210 355" stroke="url(#gGrad)" stroke-width="34" stroke-linecap="round" fill="none"/>
+    <path d="M350 175C375 175 395 185 395 195" stroke="url(#gGrad)" stroke-width="34" stroke-linecap="round" fill="none"/>
+    <!-- G bar -->
+    <path d="M305 270H385L385 330" stroke="url(#gGrad)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Cursor line - blinking feel -->
+  <rect x="420" y="385" width="5" height="45" rx="2.5" fill="#22d3ee" filter="url(#glowStrong)" opacity="0.9"/>
+
+  <!-- Semicolon accent ; -->
+  <g opacity="0.5">
+    <circle cx="440" cy="110" r="6" fill="#f472b6"/>
+    <path d="M440 125L436 145" stroke="#f472b6" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Line numbers aesthetic -->
+  <g opacity="0.12" font-family="monospace" font-size="14" fill="#a78bfa">
+    <text x="30" y="155">01</text>
+    <text x="30" y="200">02</text>
+    <text x="30" y="245">03</text>
+    <text x="30" y="290">04</text>
+    <text x="30" y="335">05</text>
+    <text x="30" y="380">06</text>
+  </g>
+
+  <!-- Dot connector between D and G -->
+  <circle cx="256" cy="420" r="4" fill="#a78bfa" opacity="0.4"/>
+  <circle cx="275" cy="420" r="4" fill="#7c3aed" opacity="0.3"/>
+  <circle cx="294" cy="420" r="4" fill="#06b6d4" opacity="0.4"/>
+
+  <!-- Top-left comment style -->
+  <g opacity="0.2" font-family="monospace" font-size="11" fill="#64748b">
+    <text x="80" y="48">// divyanshu.gupta</text>
+  </g>
+
+  <!-- Bottom-right tag -->
+  <g opacity="0.15" font-family="monospace" font-size="10" fill="#94a3b8">
+    <text x="330" y="480">&lt;/developer&gt;</text>
+  </g>
+</svg>
