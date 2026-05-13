@@ -34,6 +34,7 @@ import Certifications from './pages/Certifications';
 import Feedback from './pages/Feedback';
 import NotFound from './pages/NotFound';
 import PublicProfile from './pages/PublicProfile';
+import Guide from './pages/Guide';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -68,6 +69,7 @@ function AnimatedRoutes() {
           <Route path="/review" element={<WeeklyReview />} />
           <Route path="/certifications" element={<Certifications />} />
           <Route path="/feedback" element={<Feedback />} />
+          <Route path="/guide" element={<Guide />} />
           <Route path="/p/:uid" element={<PublicProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useMotionValueEvent, useScroll, AnimatePresence } from 'framer-motion';
-import { Home, FolderKanban, Code2, Target, BarChart3, MoreHorizontal, ListTodo, BookOpen, Map, Bookmark, Settings, Bell, LogOut, Timer, FileCode2, FolderGit2, Columns3, StickyNote, Brain, Repeat, Calendar, Award, MessageSquare } from 'lucide-react';
+import { Home, FolderKanban, Code2, Target, BarChart3, MoreHorizontal, ListTodo, BookOpen, Map, Bookmark, Settings, Bell, LogOut, Timer, FileCode2, FolderGit2, Columns3, StickyNote, Brain, Repeat, Calendar, Award, MessageSquare, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -30,6 +30,7 @@ const moreLinks = [
   { to: '/review', icon: <Calendar size={16} />, label: 'Review', color: '#f59e0b' },
   { to: '/certifications', icon: <Award size={16} />, label: 'Certs', color: '#f59e0b' },
   { to: '/feedback', icon: <MessageSquare size={16} />, label: 'Feedback', color: '#4facfe' },
+  { to: '/guide', icon: <HelpCircle size={16} />, label: 'Guide', color: '#71717a' },
   { to: '/notifications', icon: <Bell size={16} />, label: 'Notifications', color: '#f5576c' },
   { to: '/settings', icon: <Settings size={16} />, label: 'Settings', color: '#71717a' },
 ];

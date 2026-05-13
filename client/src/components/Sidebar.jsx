@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, FolderKanban, Code2, BookOpen, Target, GitBranch, Activity, Cpu, Command, Star, Terminal, ListTodo, Map, Bookmark, BarChart3, Settings, LogOut, Timer, FileCode2, FolderGit2, Columns3, StickyNote, Brain, Repeat, Calendar, Award, MessageSquare } from 'lucide-react';
+import { Home, FolderKanban, Code2, BookOpen, Target, GitBranch, Activity, Cpu, Command, Star, Terminal, ListTodo, Map, Bookmark, BarChart3, Settings, LogOut, Timer, FileCode2, FolderGit2, Columns3, StickyNote, Brain, Repeat, Calendar, Award, MessageSquare, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -28,6 +28,7 @@ const links = [
   { to: '/review', icon: <Calendar size={15} />, label: 'Review', color: '#f59e0b', hotkey: 'W' },
   { to: '/certifications', icon: <Award size={15} />, label: 'Certs', color: '#f59e0b', hotkey: 'C' },
   { to: '/feedback', icon: <MessageSquare size={15} />, label: 'Feedback', color: '#4facfe', hotkey: 'F' },
+  { to: '/guide', icon: <HelpCircle size={15} />, label: 'Guide', color: '#71717a', hotkey: '?' },
   { to: '/settings', icon: <Settings size={15} />, label: 'Settings', color: '#71717a', hotkey: '0' },
 ];
 
