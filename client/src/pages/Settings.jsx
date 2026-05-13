@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { getAll, create, update } from '../api';
 import { calculateXP, getLevel, getStreak, ACHIEVEMENTS } from '../utils/xp';
 import { db, auth } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { User, Download, Moon, Sun, Save, Palette, LogOut, FileDown, Upload } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
@@ -21,6 +21,7 @@ export default function Settings() {
   const [importing, setImporting] = useState(false);
   const [badges, setBadges] = useState([]);
   const [profilePublished, setProfilePublished] = useState(false);
+  const [referralStats, setReferralStats] = useState({ count: 0, xpBonus: 0 });
 
   useEffect(() => {
     (async () => {
@@ -47,6 +48,10 @@ export default function Settings() {
         level: getLevel(calculateXP({ totalProjects: projects.length, completed: projects.filter(p => p.status === 'completed').length, deployed: projects.filter(p => p.status === 'deployed').length, totalSkills: skills.length, totalLogs: logs.length, completedGoals: goals.filter(g => g.status === 'completed').length, activeGoals: goals.filter(g => g.status === 'active').length })).level,
       };
       setBadges(ACHIEVEMENTS.filter(a => a.check(stats)));
+
+      // Load referral stats
+      const refSnap = await getDoc(doc(db, 'users', auth.currentUser.uid, 'profile', 'referralStats'));
+      if (refSnap.exists()) setReferralStats(refSnap.data());
     })();
   }, []);
 
@@ -467,6 +472,31 @@ export default function Settings() {
               className="w-full py-2.5 rounded-xl text-[11px] font-mono flex items-center justify-center gap-2 bg-white/[0.04] border border-border-subtle text-zinc-400 hover:text-zinc-200 hover:border-primary/20 transition-all">
               🚀 Take a Tour
             </motion.button>
+          </motion.div>
+
+          {/* Referral */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+            className="glass rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">🎁 referral program</span>
+            </div>
+            <p className="text-[10px] font-mono text-zinc-500 mb-3">Invite friends — you get 100 XP per signup!</p>
+            <div className="flex items-center gap-2 mb-3">
+              <input readOnly value={`${window.location.origin}?ref=${auth.currentUser?.uid}`}
+                className="flex-1 bg-surface-3 px-3 py-2.5 rounded-lg text-[9px] font-mono text-zinc-400 border border-border-subtle" />
+              <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}?ref=${auth.currentUser?.uid}`); toast.success('Referral link copied!'); }}
+                className="text-[9px] font-mono text-primary hover:text-white px-3 py-2.5 rounded-lg bg-primary/10 border border-primary/20 transition-all">Copy</button>
+            </div>
+            <div className="flex gap-4">
+              <div className="text-center">
+                <p className="text-lg font-extrabold font-mono text-[#43e97b]">{referralStats.count}</p>
+                <p className="text-[8px] font-mono text-zinc-600">Referrals</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-extrabold font-mono text-[#f59e0b]">{referralStats.xpBonus}</p>
+                <p className="text-[8px] font-mono text-zinc-600">XP Earned</p>
+              </div>
+            </div>
           </motion.div>
 
           {/* Keyboard Shortcuts */}
