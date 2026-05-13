@@ -30,9 +30,9 @@ export default function LandingPage() {
       <section className="relative min-h-screen flex flex-col items-center justify-center px-4 py-20">
         {/* Background orbs */}
         <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0] }} transition={{ duration: 10, repeat: Infinity }}
-          className="absolute top-[20%] left-[10%] w-96 h-96 bg-gradient-to-br from-[#667eea]/20 to-[#764ba2]/10 rounded-full blur-[120px]" />
+          className="absolute top-[20%] left-[10%] w-96 h-96 bg-gradient-to-br from-[#667eea]/20 to-[#764ba2]/10 rounded-full blur-[120px] pointer-events-none" />
         <motion.div animate={{ x: [0, -20, 0], y: [0, 30, 0] }} transition={{ duration: 12, repeat: Infinity, delay: 2 }}
-          className="absolute bottom-[20%] right-[10%] w-80 h-80 bg-gradient-to-br from-[#4facfe]/15 to-[#43e97b]/8 rounded-full blur-[100px]" />
+          className="absolute bottom-[20%] right-[10%] w-80 h-80 bg-gradient-to-br from-[#4facfe]/15 to-[#43e97b]/8 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Logo */}
         <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }}
@@ -55,7 +55,7 @@ export default function LandingPage() {
         </motion.p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-10">
+        <div className="flex flex-col sm:flex-row gap-3 mt-10 relative z-10">
           <button
             onClick={loginGoogle}
             className="px-8 py-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-3 bg-white text-[#1a1a2e] shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95 transition-transform">
