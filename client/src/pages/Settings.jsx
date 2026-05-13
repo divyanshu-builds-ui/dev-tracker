@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getAll, create, update } from '../api';
+import { calculateXP, getLevel, getStreak, ACHIEVEMENTS } from '../utils/xp';
+import { db, auth } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
-import { User, Download, Moon, Sun, Save, Palette, LogOut, FileDown } from 'lucide-react';
+import { User, Download, Moon, Sun, Save, Palette, LogOut, FileDown, Upload } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../components/AuthContext';
 
@@ -10,20 +13,40 @@ export default function Settings() {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [docId, setDocId] = useState(null);
-  const [form, setForm] = useState({ name: '', role: '', initials: '', bio: '' });
+  const [form, setForm] = useState({ name: '', role: '', initials: '', bio: '', github: '', linkedin: '', portfolio: '', twitter: '', location: '', techStack: '', experience: '', availableForHire: false });
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [exporting, setExporting] = useState(false);
   const [confirmExport, setConfirmExport] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [badges, setBadges] = useState([]);
+  const [profilePublished, setProfilePublished] = useState(false);
 
   useEffect(() => {
     (async () => {
       const docs = await getAll('profile', {}, 'createdAt', 1);
       if (docs.length) {
         setDocId(docs[0].id);
-        setForm({ name: docs[0].name || '', role: docs[0].role || '', initials: docs[0].initials || '', bio: docs[0].bio || '' });
+        setForm({ name: docs[0].name || '', role: docs[0].role || '', initials: docs[0].initials || '', bio: docs[0].bio || '', github: docs[0].github || '', linkedin: docs[0].linkedin || '', portfolio: docs[0].portfolio || '', twitter: docs[0].twitter || '', location: docs[0].location || '', techStack: docs[0].techStack || '', experience: docs[0].experience || '', availableForHire: docs[0].availableForHire || false });
       }
       setProfile(true);
+
+      // Load badges
+      const [projects, skills, logs, goals] = await Promise.all([
+        getAll('projects'), getAll('skills'), getAll('logs', {}, 'createdAt', 60), getAll('goals')
+      ]);
+      const stats = {
+        totalProjects: projects.length,
+        completed: projects.filter(p => p.status === 'completed').length,
+        deployed: projects.filter(p => p.status === 'deployed').length,
+        totalSkills: skills.length,
+        totalLogs: logs.length,
+        totalHours: logs.reduce((s, l) => s + (l.hoursWorked || 0), 0),
+        completedGoals: goals.filter(g => g.status === 'completed').length,
+        streak: getStreak(logs),
+        level: getLevel(calculateXP({ totalProjects: projects.length, completed: projects.filter(p => p.status === 'completed').length, deployed: projects.filter(p => p.status === 'deployed').length, totalSkills: skills.length, totalLogs: logs.length, completedGoals: goals.filter(g => g.status === 'completed').length, activeGoals: goals.filter(g => g.status === 'active').length })).level,
+      };
+      setBadges(ACHIEVEMENTS.filter(a => a.check(stats)));
     })();
   }, []);
 
@@ -168,6 +191,79 @@ export default function Settings() {
     } catch { toast.error('PDF export failed'); }
   };
 
+  const importData = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const collections = ['projects', 'skills', 'logs', 'goals', 'tasks', 'resources'];
+      let total = 0;
+      for (const col of collections) {
+        if (data[col] && Array.isArray(data[col])) {
+          for (const item of data[col]) {
+            const { id, ...rest } = item;
+            await create(col, rest);
+            total++;
+          }
+        }
+      }
+      toast.success(`Imported ${total} items!`);
+    } catch {
+      toast.error('Invalid JSON file');
+    }
+    setImporting(false);
+    e.target.value = '';
+  };
+
+  const publishProfile = async () => {
+    try {
+      const [projects, skills, logs, goals, dsa] = await Promise.all([
+        getAll('projects'), getAll('skills'), getAll('logs', {}, 'createdAt', 60), getAll('goals'), getAll('dsa', {}, 'createdAt', 500)
+      ]);
+      const stats = {
+        totalProjects: projects.length, completed: projects.filter(p => p.status === 'completed').length,
+        deployed: projects.filter(p => p.status === 'deployed').length, totalSkills: skills.length,
+        totalLogs: logs.length, completedGoals: goals.filter(g => g.status === 'completed').length,
+        activeGoals: goals.filter(g => g.status === 'active').length,
+      };
+      const xp = calculateXP(stats);
+      const level = getLevel(xp);
+      const streak = getStreak(logs);
+      const dsaSolved = dsa.filter(q => q.solved).length;
+      const hours = logs.reduce((s, l) => s + (l.hoursWorked || 0), 0);
+      const unlockedBadges = ACHIEVEMENTS.filter(a => a.check({ ...stats, streak, level: level.level, totalHours: hours })).map(a => ({ icon: a.icon, title: a.title }));
+
+      await setDoc(doc(db, 'publicProfiles', auth.currentUser.uid), {
+        name: user?.displayName || form.name,
+        role: form.role,
+        bio: form.bio,
+        photoURL: user?.photoURL || null,
+        github: form.github,
+        linkedin: form.linkedin,
+        portfolio: form.portfolio,
+        twitter: form.twitter,
+        location: form.location,
+        experience: form.experience,
+        techStack: form.techStack,
+        availableForHire: form.availableForHire,
+        projects: projects.length,
+        skills: skills.length,
+        hours: Math.round(hours),
+        goals: stats.completedGoals,
+        dsa: dsaSolved,
+        streak,
+        level: level.level,
+        xp,
+        badges: unlockedBadges,
+        updatedAt: Date.now(),
+      });
+      setProfilePublished(true);
+      toast.success('Profile published!');
+    } catch { toast.error('Failed to publish'); }
+  };
+
   if (!profile) return (
     <div className="animate-pulse">
       <div className="mb-8"><div className="skeleton w-40 h-10 mb-2" /><div className="skeleton w-28 h-3" /></div>
@@ -222,14 +318,80 @@ export default function Settings() {
             </div>
             <input placeholder="Role (e.g. Full-Stack Developer)" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
               className="w-full bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
-            <textarea placeholder="Bio (optional)" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={2}
+            <textarea placeholder="Bio / About you" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={2}
               className="w-full bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+            <div className="grid grid-cols-2 gap-3">
+              <input placeholder="GitHub username" value={form.github} onChange={e => setForm({ ...form, github: e.target.value })}
+                className="bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+              <input placeholder="LinkedIn URL" value={form.linkedin} onChange={e => setForm({ ...form, linkedin: e.target.value })}
+                className="bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <input placeholder="Portfolio URL" value={form.portfolio} onChange={e => setForm({ ...form, portfolio: e.target.value })}
+                className="bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+              <input placeholder="Twitter / X handle" value={form.twitter} onChange={e => setForm({ ...form, twitter: e.target.value })}
+                className="bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <input placeholder="Location (e.g. India)" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
+                className="bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+              <select value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })}
+                className="bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle text-sm font-mono">
+                <option value="">Experience level</option>
+                <option value="student">Student</option>
+                <option value="fresher">Fresher</option>
+                <option value="1-2">1-2 years</option>
+                <option value="3-5">3-5 years</option>
+                <option value="5+">5+ years</option>
+              </select>
+            </div>
+            <input placeholder="Tech Stack (comma separated)" value={form.techStack} onChange={e => setForm({ ...form, techStack: e.target.value })}
+              className="w-full bg-surface-3 px-4 py-3 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={form.availableForHire} onChange={e => setForm({ ...form, availableForHire: e.target.checked })}
+                className="w-4 h-4 rounded accent-primary" />
+              <span className="text-[11px] font-mono text-zinc-400">Available for hire / open to opportunities</span>
+            </label>
 
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit"
               className="btn-premium w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2">
               <Save size={14} /> Save Profile
             </motion.button>
           </form>
+
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div className="mt-6 pt-5 border-t border-white/[0.04]">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">badges earned</span>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {badges.map(b => (
+                  <motion.div key={b.id} whileHover={{ scale: 1.15, y: -2 }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg cursor-default bg-white/[0.03] border border-white/[0.06]"
+                    title={`${b.title} — ${b.desc}`}>
+                    {b.icon}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Public Profile */}
+          <div className="mt-6 pt-5 border-t border-white/[0.04]">
+            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">public profile</span>
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={publishProfile}
+              className="w-full mt-3 py-2.5 rounded-xl text-[11px] font-mono flex items-center justify-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all">
+              {profilePublished ? "✓ Published" : "🌐 Publish Profile"}
+            </motion.button>
+            {profilePublished && (
+              <div className="mt-2 flex items-center gap-2">
+                <input readOnly value={`${window.location.origin}/p/${auth.currentUser?.uid}`}
+                  className="flex-1 bg-surface-3 px-3 py-2 rounded-lg text-[9px] font-mono text-zinc-400 border border-border-subtle" />
+                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/p/${auth.currentUser?.uid}`); toast.success("Link copied!"); }}
+                  className="text-[9px] font-mono text-primary hover:text-white px-2 py-2 rounded-lg bg-primary/10 border border-primary/20">Copy</button>
+              </div>
+            )}
+          </div>
+
         </motion.div>
 
         {/* Theme + Export */}
@@ -284,6 +446,11 @@ export default function Settings() {
                 className="w-full py-3 rounded-xl text-sm font-mono font-medium flex items-center justify-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all">
                 <FileDown size={14} /> Export PDF Report
               </motion.button>
+
+              <label className="w-full py-3 rounded-xl text-sm font-mono font-medium flex items-center justify-center gap-2 bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#f59e0b] hover:bg-[#f59e0b]/15 transition-all cursor-pointer">
+                <Upload size={14} /> {importing ? 'Importing...' : 'Import JSON'}
+                <input type="file" accept=".json" onChange={importData} className="hidden" disabled={importing} />
+              </label>
             </div>
           </motion.div>
 
@@ -300,6 +467,44 @@ export default function Settings() {
               className="w-full py-2.5 rounded-xl text-[11px] font-mono flex items-center justify-center gap-2 bg-white/[0.04] border border-border-subtle text-zinc-400 hover:text-zinc-200 hover:border-primary/20 transition-all">
               🚀 Take a Tour
             </motion.button>
+          </motion.div>
+
+          {/* Keyboard Shortcuts */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+            className="glass rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">⌨️ keyboard shortcuts</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[9px] font-mono">
+              {[
+                ['Ctrl+K', 'Search'],
+                ['1', 'Dashboard'],
+                ['2', 'Projects'],
+                ['3', 'Tasks'],
+                ['4', 'Skills'],
+                ['5', 'Daily Log'],
+                ['6', 'Goals'],
+                ['7', 'Roadmap'],
+                ['8', 'Resources'],
+                ['9', 'Analytics'],
+                ['0', 'Settings'],
+                ['P', 'Pomodoro'],
+                ['S', 'Snippets'],
+                ['G', 'GitHub'],
+                ['K', 'Kanban'],
+                ['N', 'Notes'],
+                ['D', 'DSA Prep'],
+                ['H', 'Habits'],
+                ['W', 'Review'],
+                ['C', 'Certs'],
+                ['F', 'Feedback'],
+              ].map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-zinc-500">{label}</span>
+                  <span className="text-zinc-700 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">{key}</span>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Logout */}

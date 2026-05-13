@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAll, create, update, remove } from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, X, CheckCircle2, Circle, ChevronDown, ChevronRight, ListTodo, Clock, Flag, FolderKanban } from 'lucide-react';
+import { Plus, Trash2, X, CheckCircle2, Circle, ChevronDown, ChevronRight, ListTodo, Clock, Flag, FolderKanban, CheckCheck } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { checkMilestone } from '../utils/confetti';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } };
@@ -22,6 +23,9 @@ export default function Tasks() {
   const [filterProject, setFilterProject] = useState('');
   const [expandedTasks, setExpandedTasks] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [selected, setSelected] = useState([]);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [confirmUndone, setConfirmUndone] = useState(null);
 
   const fetchTasks = async () => {
     const all = await getAll('tasks');
@@ -44,8 +48,16 @@ export default function Tasks() {
   };
 
   const toggleTask = async (task) => {
-    const newStatus = task.status === 'done' ? 'pending' : 'done';
-    await update('tasks', task.id, { status: newStatus });
+    if (task.status === 'done') { setConfirmUndone(task.id); return; }
+    await update('tasks', task.id, { status: 'done' });
+    const newCount = tasks.filter(t => t.status === 'done').length + 1;
+    checkMilestone(newCount);
+    fetchTasks();
+  };
+
+  const confirmMarkPending = async () => {
+    await update('tasks', confirmUndone, { status: 'pending' });
+    setConfirmUndone(null);
     fetchTasks();
   };
 
@@ -60,6 +72,24 @@ export default function Tasks() {
     await remove('tasks', confirmDelete);
     setConfirmDelete(null);
     toast.success('Deleted');
+    fetchTasks();
+  };
+
+  const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const selectAll = () => setSelected(pending.map(t => t.id));
+  const clearSelection = () => { setSelected([]); setBulkMode(false); };
+
+  const bulkMarkDone = async () => {
+    for (const id of selected) await update('tasks', id, { status: 'done' });
+    toast.success(`${selected.length} tasks completed! 🎉`);
+    clearSelection();
+    fetchTasks();
+  };
+
+  const bulkDelete = async () => {
+    for (const id of selected) await remove('tasks', id);
+    toast.success(`${selected.length} tasks deleted`);
+    clearSelection();
     fetchTasks();
   };
 
@@ -96,11 +126,18 @@ export default function Tasks() {
             <span className="code-variable">done</span>: <span className="code-number">{done.length}</span>
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
-          <Plus size={16} /> New Task
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setBulkMode(!bulkMode)}
+            className={`px-4 py-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-mono transition-all ${bulkMode ? 'bg-[#4facfe]/15 text-[#4facfe] border border-[#4facfe]/25' : 'bg-surface-3 text-zinc-500 border border-border-subtle hover:text-zinc-200'}`}>
+            <CheckCheck size={14} /> Bulk
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(!showForm)}
+            className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+            <Plus size={16} /> New Task
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Project filter */}
@@ -154,8 +191,9 @@ export default function Tasks() {
                     </motion.button>
                   ))}
                 </div>
-                <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
-                  className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle text-sm text-zinc-400 font-mono" />
+                <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} min={new Date().toISOString().split('T')[0]}
+                  onClick={e => e.target.showPicker()}
+                  className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle text-sm text-zinc-400 font-mono cursor-pointer" />
                 <textarea placeholder="subtasks (one per line)" value={form.subtasks} onChange={e => setForm({ ...form, subtasks: e.target.value })}
                   className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono md:col-span-2" rows={3} />
               </div>
@@ -167,6 +205,20 @@ export default function Tasks() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bulk actions bar */}
+      {bulkMode && selected.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-xl p-3 mb-4 flex items-center justify-between">
+          <span className="text-[11px] font-mono text-zinc-300">{selected.length} selected</span>
+          <div className="flex gap-2">
+            <button onClick={selectAll} className="text-[10px] font-mono text-primary hover:text-white transition-colors">Select All</button>
+            <button onClick={bulkMarkDone} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20">Mark Done</button>
+            <button onClick={bulkDelete} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20">Delete</button>
+            <button onClick={clearSelection} className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300">Cancel</button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Pending Tasks */}
       {pending.length > 0 && (
@@ -186,10 +238,18 @@ export default function Tasks() {
                 <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full" style={{ background: priorityConfig[task.priority]?.color }} />
 
                 <div className="flex items-start gap-3 relative z-10">
-                  {/* Toggle */}
-                  <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} onClick={() => toggleTask(task)} className="mt-0.5 text-zinc-500 hover:text-[#43e97b] transition-colors">
-                    <Circle size={18} />
-                  </motion.button>
+                  {/* Bulk select or Toggle */}
+                  {bulkMode ? (
+                    <button onClick={() => toggleSelect(task.id)} className="mt-0.5">
+                      {selected.includes(task.id)
+                        ? <CheckCircle2 size={18} className="text-primary" />
+                        : <Circle size={18} className="text-zinc-600" />}
+                    </button>
+                  ) : (
+                    <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} onClick={() => toggleTask(task)} className="mt-0.5 text-zinc-500 hover:text-[#43e97b] transition-colors">
+                      <Circle size={18} />
+                    </motion.button>
+                  )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -280,6 +340,8 @@ export default function Tasks() {
 
       <ConfirmModal open={!!confirmDelete} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)}
         title="Delete task?" message="This task will be permanently deleted." confirmText="Delete" />
+      <ConfirmModal open={!!confirmUndone} onConfirm={confirmMarkPending} onCancel={() => setConfirmUndone(null)}
+        title="Mark as pending?" message="Are you sure you want to move this task back to pending?" confirmText="Undo" variant="warning" />
 
       {/* Empty */}
       {tasks.length === 0 && (

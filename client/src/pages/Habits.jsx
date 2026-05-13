@@ -11,6 +11,19 @@ const item = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transiti
 const COLORS = ['#667eea', '#43e97b', '#4facfe', '#f093fb', '#f59e0b', '#f5576c', '#a78bfa'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const SUGGESTED_HABITS = [
+  { name: 'Solve 1 LeetCode problem', color: '#43e97b' },
+  { name: 'Read documentation (30 min)', color: '#4facfe' },
+  { name: 'Write code (1 hour minimum)', color: '#667eea' },
+  { name: 'Learn something new', color: '#f093fb' },
+  { name: 'Push code to GitHub', color: '#a78bfa' },
+  { name: 'Review yesterday\'s code', color: '#f59e0b' },
+  { name: 'Write a blog/note', color: '#f5576c' },
+  { name: 'Practice typing speed', color: '#06b6d4' },
+  { name: 'Watch 1 tech video', color: '#f59e0b' },
+  { name: 'Contribute to open source', color: '#43e97b' },
+];
+
 function getDateKey(date) {
   return date.toISOString().split('T')[0];
 }
@@ -42,6 +55,8 @@ export default function HabitTracker() {
   const [form, setForm] = useState({ name: '', color: '#667eea' });
   const [showForm, setShowForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [confirmUncheck, setConfirmUncheck] = useState(null);
 
   const fetchHabits = async () => setHabits(await getAll('habits', {}, 'createdAt', 50));
   useEffect(() => { fetchHabits(); }, []);
@@ -57,16 +72,36 @@ export default function HabitTracker() {
 
   const toggleDay = async (habit, dateKey) => {
     const dates = habit.completedDates || [];
-    const next = dates.includes(dateKey) ? dates.filter(d => d !== dateKey) : [...dates, dateKey];
+    if (dates.includes(dateKey)) {
+      setConfirmUncheck({ habitId: habit.id, dateKey });
+      return;
+    }
+    const next = [...dates, dateKey];
     await update('habits', habit.id, { completedDates: next });
     setHabits(prev => prev.map(h => h.id === habit.id ? { ...h, completedDates: next } : h));
-    if (!dates.includes(dateKey)) toast.success('Done! ✓', { duration: 1000 });
+    toast.success('Done! ✓', { duration: 1000 });
+  };
+
+  const confirmUncheckDay = async () => {
+    const habit = habits.find(h => h.id === confirmUncheck.habitId);
+    const next = (habit.completedDates || []).filter(d => d !== confirmUncheck.dateKey);
+    await update('habits', confirmUncheck.habitId, { completedDates: next });
+    setHabits(prev => prev.map(h => h.id === confirmUncheck.habitId ? { ...h, completedDates: next } : h));
+    setConfirmUncheck(null);
   };
 
   const handleDelete = async () => {
     await remove('habits', confirmDelete);
     setConfirmDelete(null);
     toast.success('Deleted');
+    fetchHabits();
+  };
+
+  const addSuggested = async (habit) => {
+    const exists = habits.some(h => h.name.toLowerCase() === habit.name.toLowerCase());
+    if (exists) { toast.error('Already added!'); return; }
+    await create('habits', { ...habit, completedDates: [] });
+    toast.success('Habit added! 🔥');
     fetchHabits();
   };
 
@@ -101,12 +136,42 @@ export default function HabitTracker() {
             <span className="code-variable">today</span>: <span className="code-number">{todayDone}</span>/<span className="code-number">{totalHabits}</span> done
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
-          <Plus size={16} /> New Habit
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSuggestions(!showSuggestions)}
+            className="px-4 py-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-mono bg-[#43e97b]/10 border border-[#43e97b]/20 text-[#43e97b] hover:bg-[#43e97b]/15 transition-all">
+            ⚡ Suggestions
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(!showForm)}
+            className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+            <Plus size={16} /> New Habit
+          </motion.button>
+        </div>
       </motion.div>
+
+      {/* Suggested Habits */}
+      <AnimatePresence>
+        {showSuggestions && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            className="glass rounded-2xl p-5 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">suggested habits — tap to add</span>
+              <button onClick={() => setShowSuggestions(false)} className="text-zinc-600 hover:text-zinc-300 text-xs">✕</button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTED_HABITS.map((h, i) => (
+                <motion.button key={i} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => addSuggested(h)}
+                  className="px-3 py-2 rounded-xl text-[11px] font-mono transition-all border active:scale-95"
+                  style={{ color: h.color, background: `${h.color}10`, borderColor: `${h.color}25` }}>
+                  + {h.name}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Today's progress */}
       {totalHabits > 0 && (
@@ -230,6 +295,8 @@ export default function HabitTracker() {
 
       <ConfirmModal open={!!confirmDelete} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)}
         title="Delete habit?" message="This habit and all its history will be permanently deleted." confirmText="Delete" />
+      <ConfirmModal open={!!confirmUncheck} onConfirm={confirmUncheckDay} onCancel={() => setConfirmUncheck(null)}
+        title="Uncheck day?" message="Are you sure you want to unmark this day?" confirmText="Uncheck" variant="warning" />
 
       {/* Empty */}
       {habits.length === 0 && (

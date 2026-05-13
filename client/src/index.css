@@ -532,3 +532,17 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; filter: invert(0.7
 [data-theme="emerald"] .code-function { color: #10b981; }
 [data-theme="emerald"] .code-variable { color: #fbbf24; }
 [data-theme="emerald"] .code-comment { color: #4b7c6f; }
+
+
+/* ===== DATE INPUT FIX ===== */
+input[type="date"] {
+  position: relative;
+  cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.7);
+  opacity: 1;
+  font-size: 16px;
+  padding: 4px;
+}

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getAll } from '../api';
 import toast from 'react-hot-toast';
-import { Calendar, Clock, CheckCircle2, Target, Flame, Brain, Code2, TrendingUp, FileDown } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, Target, Flame, Brain, Code2, TrendingUp, FileDown, Share2 } from 'lucide-react';
 
 export default function WeeklyReview() {
   const [data, setData] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const cardRef = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -87,6 +88,33 @@ export default function WeeklyReview() {
     { label: 'Habit Rate', value: habitRate, unit: '%', icon: <TrendingUp size={16} />, color: '#f59e0b' },
     { label: 'Active Projects', value: projectsActive, unit: '', icon: <Code2 size={16} />, color: '#a78bfa' },
   ];
+
+  const shareCard = async () => {
+    const { toPng } = await import('html-to-image');
+    const el = document.getElementById('share-card');
+    if (!el) return;
+    // Make visible for capture
+    el.style.display = 'block';
+    el.style.position = 'fixed';
+    el.style.left = '0';
+    el.style.top = '0';
+    el.style.zIndex = '-1';
+    el.style.opacity = '1';
+    // Wait for render
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      const dataUrl = await toPng(el.firstChild, { pixelRatio: 2, backgroundColor: '#050508' });
+      const link = document.createElement('a');
+      link.download = `dev-tracker-week-${weekStart.toISOString().split('T')[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success('Card downloaded! Share it on social media 🚀');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to generate card');
+    }
+    el.style.display = 'none';
+  };
 
   const exportPDF = async () => {
     const { jsPDF } = await import('jspdf');
@@ -197,10 +225,16 @@ export default function WeeklyReview() {
             Weekly <span className="gradient-text">Review</span>
           </h2>
         </div>
-        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={exportPDF}
-          className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all">
-          <FileDown size={14} /> Export PDF
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={shareCard}
+            className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all">
+            <Share2 size={14} /> Share Card
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={exportPDF}
+            className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all">
+            <FileDown size={14} /> Export PDF
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Week selector */}
@@ -271,6 +305,55 @@ export default function WeeklyReview() {
           )}
         </div>
       </motion.div>
+
+      {/* Hidden Share Card */}
+      <div id="share-card" style={{ display: 'none', position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+        <div style={{ width: 600, height: 400, background: '#050508', padding: 40, fontFamily: 'Inter, monospace', position: 'relative', overflow: 'hidden' }}>
+          {/* Background */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #050508 0%, #0a0a14 50%, #0f0f1a 100%)' }} />
+          <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, background: 'radial-gradient(circle, rgba(102,126,234,0.2), transparent 70%)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', bottom: -30, left: -30, width: 150, height: 150, background: 'radial-gradient(circle, rgba(240,147,251,0.12), transparent 70%)', borderRadius: '50%' }} />
+
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#e4e4e7', letterSpacing: '-0.5px' }}>Dev Tracker</div>
+                <div style={{ fontSize: 11, color: '#71717a', marginTop: 4 }}>{weekLabel}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 48, fontWeight: 800, color: scoreColor, lineHeight: 1 }}>{score}</div>
+                <div style={{ fontSize: 10, color: '#52525b', marginTop: 2 }}>week score</div>
+              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+              {[{ l: 'Hours', v: `${hoursWorked}h`, c: '#4facfe' }, { l: 'Tasks', v: String(tasksCompleted), c: '#43e97b' }, { l: 'DSA', v: String(dsaSolved), c: '#06b6d4' }, { l: 'Focus', v: `${focusHours}h`, c: '#ef4444' }].map((s, i) => (
+                <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 14, textAlign: 'center', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: s.c }}>{s.v}</div>
+                  <div style={{ fontSize: 9, color: '#52525b', marginTop: 4 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Highlights */}
+            <div style={{ fontSize: 11, color: '#a1a1aa', lineHeight: 2 }}>
+              {hoursWorked > 0 && <div>{`→ Logged ${hoursWorked}h across ${logDays} days`}</div>}
+              {goalsHit > 0 && <div>{`→ Crushed ${goalsHit} goals`}</div>}
+              {habitRate > 0 && <div>{`→ Habit completion: ${habitRate}%`}</div>}
+              {dsaSolved > 0 && <div>{`→ Solved ${dsaSolved} DSA questions`}</div>}
+            </div>
+
+            {/* Footer */}
+            <div style={{ position: 'absolute', bottom: -20, left: 0, right: 0, display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 9, color: '#3f3f46' }}>dev-tracker-by-dg.vercel.app</div>
+              <div style={{ fontSize: 9, color: '#3f3f46' }}>{score >= 80 ? '🔥 Incredible!' : score >= 50 ? '💪 Solid!' : '🚀 Growing!'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAll, create, update, remove } from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, X, Brain, CheckCircle2, Circle, Search, Filter, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, X, Brain, CheckCircle2, Circle, Search, Filter, ExternalLink, Download, CheckCheck } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { DSA_STARTER_PACK } from '../utils/dsaData';
+import { checkMilestone } from '../utils/confetti';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } };
@@ -27,6 +29,11 @@ export default function DSATracker() {
   const [filterStatus, setFilterStatus] = useState('');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [confirmUndone, setConfirmUndone] = useState(null);
+  const [confirmLoad, setConfirmLoad] = useState(false);
 
   const fetchQuestions = async () => {
     let all = await getAll('dsa', {}, 'createdAt', 500);
@@ -50,9 +57,21 @@ export default function DSATracker() {
   };
 
   const toggleSolved = async (q) => {
-    await update('dsa', q.id, { solved: !q.solved });
-    setQuestions(prev => prev.map(x => x.id === q.id ? { ...x, solved: !x.solved } : x));
-    if (!q.solved) toast.success('Solved! 🎉');
+    if (q.solved) { setConfirmUndone(q.id); return; }
+    await update('dsa', q.id, { solved: true });
+    setQuestions(prev => prev.map(x => x.id === q.id ? { ...x, solved: true } : x));
+    const newCount = questions.filter(x => x.solved).length + 1;
+    if (checkMilestone(newCount)) {
+      toast.success(`🎉 Milestone! ${newCount} questions solved!`, { duration: 4000 });
+    } else {
+      toast.success('Solved! 🎉');
+    }
+  };
+
+  const confirmMarkUnsolved = async () => {
+    await update('dsa', confirmUndone, { solved: false });
+    setQuestions(prev => prev.map(x => x.id === confirmUndone ? { ...x, solved: false } : x));
+    setConfirmUndone(null);
   };
 
   const handleDelete = async () => {
@@ -60,6 +79,45 @@ export default function DSATracker() {
     setConfirmDelete(null);
     toast.success('Deleted');
     fetchQuestions();
+  };
+
+  const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const selectAll = () => setSelected(questions.filter(q => !q.solved).map(q => q.id));
+  const clearSelection = () => { setSelected([]); setBulkMode(false); };
+
+  const bulkMarkSolved = async () => {
+    for (const id of selected) await update('dsa', id, { solved: true });
+    toast.success(`${selected.length} questions solved! 🎉`);
+    clearSelection();
+    fetchQuestions();
+  };
+
+  const bulkDelete = async () => {
+    for (const id of selected) await remove('dsa', id);
+    toast.success(`${selected.length} questions deleted`);
+    clearSelection();
+    fetchQuestions();
+  };
+
+  const loadStarterPack = async () => {
+    setConfirmLoad(false);
+    setLoading(true);
+    const existing = questions.map(q => q.title.toLowerCase());
+    let added = 0;
+    for (const q of DSA_STARTER_PACK) {
+      if (!existing.includes(q.title.toLowerCase())) {
+        await create('dsa', { ...q, solved: false, notes: '' });
+        added++;
+      }
+    }
+    toast.success(`Loaded ${added} questions! 🧠`);
+    setLoading(false);
+    fetchQuestions();
+  };
+
+  const handleLoadClick = () => {
+    if (questions.length > 0) setConfirmLoad(true);
+    else loadStarterPack();
   };
 
   if (questions === null) return (
@@ -97,11 +155,23 @@ export default function DSATracker() {
             <span style={{ color: '#f5576c' }}>H:{hardCount}</span>
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
-          <Plus size={16} /> Add Question
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setBulkMode(!bulkMode)}
+            className={`px-4 py-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-mono transition-all ${bulkMode ? 'bg-[#4facfe]/15 text-[#4facfe] border border-[#4facfe]/25' : 'bg-surface-3 text-zinc-500 border border-border-subtle hover:text-zinc-200'}`}>
+            <CheckCheck size={14} /> Bulk
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={handleLoadClick} disabled={loading}
+            className="px-4 py-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-mono bg-[#43e97b]/10 border border-[#43e97b]/20 text-[#43e97b] hover:bg-[#43e97b]/15 transition-all disabled:opacity-50">
+            <Download size={14} /> {loading ? 'Loading...' : 'Load Blind 75'}
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(!showForm)}
+            className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+            <Plus size={16} /> Add Question
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Stats bar */}
@@ -210,6 +280,20 @@ export default function DSATracker() {
         )}
       </AnimatePresence>
 
+      {/* Bulk actions bar */}
+      {bulkMode && selected.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-xl p-3 mb-4 flex items-center justify-between">
+          <span className="text-[11px] font-mono text-zinc-300">{selected.length} selected</span>
+          <div className="flex gap-2">
+            <button onClick={selectAll} className="text-[10px] font-mono text-primary hover:text-white transition-colors">Select All</button>
+            <button onClick={bulkMarkSolved} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20">Mark Solved</button>
+            <button onClick={bulkDelete} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20">Delete</button>
+            <button onClick={clearSelection} className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300">Cancel</button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Questions list */}
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
         {questions.map(q => {
@@ -219,12 +303,20 @@ export default function DSATracker() {
               className={`glass rounded-xl p-4 flex items-center gap-3 group transition-all ${q.solved ? 'opacity-60' : ''}`}
               style={{ borderLeftWidth: '3px', borderLeftColor: dc.color }}>
               {/* Toggle */}
-              <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} onClick={() => toggleSolved(q)}
-                className="flex-shrink-0">
-                {q.solved
-                  ? <CheckCircle2 size={18} style={{ color: dc.color }} />
-                  : <Circle size={18} className="text-zinc-600 hover:text-zinc-300 transition-colors" />}
-              </motion.button>
+              {bulkMode ? (
+                <button onClick={() => toggleSelect(q.id)} className="flex-shrink-0">
+                  {selected.includes(q.id)
+                    ? <CheckCircle2 size={18} className="text-primary" />
+                    : <Circle size={18} className="text-zinc-600" />}
+                </button>
+              ) : (
+                <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} onClick={() => toggleSolved(q)}
+                  className="flex-shrink-0">
+                  {q.solved
+                    ? <CheckCircle2 size={18} style={{ color: dc.color }} />
+                    : <Circle size={18} className="text-zinc-600 hover:text-zinc-300 transition-colors" />}
+                </motion.button>
+              )}
 
               {/* Content */}
               <div className="flex-1 min-w-0">
@@ -256,6 +348,10 @@ export default function DSATracker() {
 
       <ConfirmModal open={!!confirmDelete} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)}
         title="Delete question?" message="This question will be permanently deleted." confirmText="Delete" />
+      <ConfirmModal open={confirmLoad} onConfirm={loadStarterPack} onCancel={() => setConfirmLoad(false)}
+        title="Load Blind 75?" message="This will add 60+ DSA questions to your list." confirmText="Load" variant="warning" />
+      <ConfirmModal open={!!confirmUndone} onConfirm={confirmMarkUnsolved} onCancel={() => setConfirmUndone(null)}
+        title="Mark as unsolved?" message="Are you sure you want to mark this question as unsolved?" confirmText="Unsolved" variant="warning" />
 
       {/* Empty */}
       {questions.length === 0 && (

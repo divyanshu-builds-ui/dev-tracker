@@ -142,8 +142,9 @@ export default function Goals() {
                   ))}
                 </div>
 
-                <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
-                  className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle text-sm text-zinc-400 font-mono" />
+                <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} min={new Date().toISOString().split('T')[0]}
+                  onClick={e => e.target.showPicker()}
+                  className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle text-sm text-zinc-400 font-mono cursor-pointer" />
 
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit"
                   className="btn-premium px-6 py-3.5 rounded-xl text-sm flex items-center gap-1.5">

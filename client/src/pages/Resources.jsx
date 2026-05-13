@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAll, create, remove } from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, X, Bookmark, ExternalLink, Search, Tag } from 'lucide-react';
+import { Plus, Trash2, X, Bookmark, ExternalLink, Search, Tag, Download } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { RESOURCES_STARTER_PACK } from '../utils/resourcesData';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 15, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 100, damping: 14 } } };
@@ -25,6 +26,8 @@ export default function Resources() {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [loadingPack, setLoadingPack] = useState(false);
+  const [confirmLoad, setConfirmLoad] = useState(false);
 
   const fetchResources = async () => {
     let all = await getAll('resources');
@@ -50,6 +53,27 @@ export default function Resources() {
     setConfirmDelete(null);
     toast.success('Deleted');
     fetchResources();
+  };
+
+  const loadStarterPack = async () => {
+    setConfirmLoad(false);
+    setLoadingPack(true);
+    const existing = resources.map(r => r.url.toLowerCase());
+    let added = 0;
+    for (const r of RESOURCES_STARTER_PACK) {
+      if (!existing.includes(r.url.toLowerCase())) {
+        await create('resources', r);
+        added++;
+      }
+    }
+    toast.success(`Loaded ${added} resources! 📚`);
+    setLoadingPack(false);
+    fetchResources();
+  };
+
+  const handleLoadClick = () => {
+    if (resources.length > 0) setConfirmLoad(true);
+    else loadStarterPack();
   };
 
   if (resources === null) return (
@@ -78,11 +102,18 @@ export default function Resources() {
             <span className="code-keyword">const</span> <span className="code-variable">saved</span> = <span className="code-number">{resources.length}</span>;
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
-          <Plus size={16} /> Save Link
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={handleLoadClick} disabled={loadingPack}
+            className="px-4 py-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-mono bg-[#4facfe]/10 border border-[#4facfe]/20 text-[#4facfe] hover:bg-[#4facfe]/15 transition-all disabled:opacity-50">
+            <Download size={14} /> {loadingPack ? 'Loading...' : 'Load Starter Pack'}
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(!showForm)}
+            className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+            <Plus size={16} /> Save Link
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Search + Filters */}
@@ -205,6 +236,8 @@ export default function Resources() {
 
       <ConfirmModal open={!!confirmDelete} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)}
         title="Delete resource?" message="This bookmark will be permanently deleted." confirmText="Delete" />
+      <ConfirmModal open={confirmLoad} onConfirm={loadStarterPack} onCancel={() => setConfirmLoad(false)}
+        title="Load Starter Pack?" message="This will add 50+ curated resources to your vault." confirmText="Load" variant="warning" />
 
       {/* Empty state */}
       {resources.length === 0 && (

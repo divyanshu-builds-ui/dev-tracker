@@ -170,7 +170,8 @@ export default function Certifications() {
                   className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
                 {form.status === 'completed' && (
                   <input type="date" value={form.completedDate} onChange={e => setForm({ ...form, completedDate: e.target.value })}
-                    className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle text-sm text-zinc-400 font-mono" />
+                    onClick={e => e.target.showPicker()}
+                    className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle text-sm text-zinc-400 font-mono cursor-pointer" />
                 )}
               </div>
               <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} type="submit"

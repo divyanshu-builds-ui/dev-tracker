@@ -4,10 +4,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import GlobalLoader from './components/LoadingProvider';
 import OnboardingTour from './components/OnboardingTour';
+import OfflineIndicator from './components/OfflineIndicator';
 import Logo from './components/Logo';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import Footer from './components/Footer';
+import useKeyboardShortcuts from './components/useKeyboardShortcuts';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Skills from './pages/Skills';
@@ -30,6 +32,8 @@ import Habits from './pages/Habits';
 import WeeklyReview from './pages/WeeklyReview';
 import Certifications from './pages/Certifications';
 import Feedback from './pages/Feedback';
+import NotFound from './pages/NotFound';
+import PublicProfile from './pages/PublicProfile';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -64,6 +68,8 @@ function AnimatedRoutes() {
           <Route path="/review" element={<WeeklyReview />} />
           <Route path="/certifications" element={<Certifications />} />
           <Route path="/feedback" element={<Feedback />} />
+          <Route path="/p/:uid" element={<PublicProfile />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -72,6 +78,16 @@ function AnimatedRoutes() {
 
 function AppContent() {
   const { user } = useAuth();
+  useKeyboardShortcuts();
+
+  // Public profile route — accessible without login
+  if (window.location.pathname.startsWith('/p/')) {
+    return (
+      <Routes>
+        <Route path="/p/:uid" element={<PublicProfile />} />
+      </Routes>
+    );
+  }
 
   // Loading state
   if (user === undefined) return (
@@ -153,6 +169,7 @@ export default function App() {
         <div className="animated-bg" />
         <div className="noise" />
         <GlobalLoader />
+        <OfflineIndicator />
         <AppContent />
       </BrowserRouter>
     </AuthProvider>

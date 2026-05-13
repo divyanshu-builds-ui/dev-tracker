@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAll, create, remove } from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, X, Code2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, X, Code2, Sparkles, Download } from 'lucide-react';
 import { SkillsSkeleton } from '../components/Skeletons';
 import ConfirmModal from '../components/ConfirmModal';
+import { SKILL_PACKS } from '../utils/skillsData';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, x: -20, scale: 0.95 }, show: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 100, damping: 14 } } };
@@ -58,6 +59,8 @@ export default function Skills() {
   const [form, setForm] = useState({ name: '', category: 'frontend', level: 'beginner', progress: 0 });
   const [showForm, setShowForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showPacks, setShowPacks] = useState(false);
+  const [loadingPack, setLoadingPack] = useState(false);
 
   const fetchSkills = async () => setSkills(await getAll('skills'));
   useEffect(() => { fetchSkills(); }, []);
@@ -70,6 +73,23 @@ export default function Skills() {
     toast.success('Skill added! 💪');
     setForm({ name: '', category: 'frontend', level: 'beginner', progress: 0 });
     setShowForm(false);
+    fetchSkills();
+  };
+
+  const loadSkillPack = async (packKey) => {
+    setLoadingPack(true);
+    const pack = SKILL_PACKS[packKey];
+    const existing = skills.map(s => s.name.toLowerCase());
+    let added = 0;
+    for (const s of pack.skills) {
+      if (!existing.includes(s.name.toLowerCase())) {
+        await create('skills', s);
+        added++;
+      }
+    }
+    toast.success(`Added ${added} skills from ${pack.label}! 💪`);
+    setLoadingPack(false);
+    setShowPacks(false);
     fetchSkills();
   };
 
@@ -110,12 +130,43 @@ export default function Skills() {
             <span className="code-keyword">const</span> <span className="code-variable">skills</span> = <span className="code-bracket">[</span><span className="code-number">{skills.length}</span><span className="code-bracket">]</span>;
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
-          <Plus size={16} /> Add Skill
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowPacks(!showPacks)} disabled={loadingPack}
+            className="px-4 py-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-mono bg-[#43e97b]/10 border border-[#43e97b]/20 text-[#43e97b] hover:bg-[#43e97b]/15 transition-all disabled:opacity-50">
+            <Download size={14} /> {loadingPack ? 'Loading...' : 'Skill Packs'}
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(!showForm)}
+            className="btn-premium px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+            <Plus size={16} /> Add Skill
+          </motion.button>
+        </div>
       </motion.div>
+
+      {/* Skill Packs */}
+      <AnimatePresence>
+        {showPacks && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            className="glass rounded-2xl p-5 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">choose your stack</span>
+              <button onClick={() => setShowPacks(false)} className="text-zinc-600 hover:text-zinc-300 text-xs">✕</button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {Object.entries(SKILL_PACKS).map(([key, pack]) => (
+                <motion.button key={key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => loadSkillPack(key)}
+                  className="glass rounded-xl p-4 text-left hover:border-primary/20 transition-all">
+                  <span className="text-xl">{pack.icon}</span>
+                  <p className="text-[11px] font-semibold text-zinc-200 mt-2">{pack.label}</p>
+                  <p className="text-[9px] font-mono text-zinc-500 mt-0.5">{pack.skills.length} skills</p>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Form */}
       <AnimatePresence>

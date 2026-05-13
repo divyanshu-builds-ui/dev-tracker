@@ -50,9 +50,10 @@ export function getStreak(logs) {
   if (!logs.length) return 0;
   const sorted = [...logs].sort((a, b) => b.date - a.date);
   let streak = 0;
+  let freezeUsed = false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 365; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(checkDate.getDate() - i);
     const hasLog = sorted.some(l => {
@@ -60,8 +61,18 @@ export function getStreak(logs) {
       d.setHours(0, 0, 0, 0);
       return d.getTime() === checkDate.getTime();
     });
-    if (hasLog) streak++;
-    else if (i > 0) break;
+    if (hasLog) {
+      streak++;
+    } else if (i === 0) {
+      // Today not logged yet — don't break, just skip
+      continue;
+    } else if (!freezeUsed) {
+      // One free miss — streak freeze
+      freezeUsed = true;
+      streak++;
+    } else {
+      break;
+    }
   }
   return streak;
 }
