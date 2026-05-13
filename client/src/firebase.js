@@ -4,7 +4,7 @@ import { getAuth, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDfhV4xay42XrmbY7shzdDNxc_4WBJWYMQ",
-  authDomain: "dev-tracker-by-dg.vercel.app",
+  authDomain: "dev-tracker-29ede.firebaseapp.com",
   projectId: "dev-tracker-29ede",
   storageBucket: "dev-tracker-29ede.firebasestorage.app",
   messagingSenderId: "400255198355",
