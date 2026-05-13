@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAll, create, update, remove } from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Pencil, ExternalLink, X, FolderKanban, Search, Rocket, Zap, Code2, Globe, GitFork } from 'lucide-react';
+import { Plus, Trash2, Pencil, ExternalLink, X, FolderKanban, Search, Rocket, Zap, Code2, Globe, GitFork, Archive, Pin, ArrowUpDown, Tag, Clock, History } from 'lucide-react';
 import { ProjectsSkeleton } from '../components/Skeletons';
 import ConfirmModal from '../components/ConfirmModal';
 
-const emptyProject = { name: '', description: '', category: 'real-world', techStack: '', status: 'planning', progress: 0, liveLink: '', githubLink: '', challenges: '', learnings: '' };
+const emptyProject = { name: '', description: '', category: 'real-world', techStack: '', status: 'planning', progress: 0, liveLink: '', githubLink: '', challenges: '', learnings: '', tags: '', deadline: '', pinned: false, archived: false, changelog: [] };
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 30, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 90, damping: 15 } } };
@@ -41,21 +41,31 @@ export default function Projects() {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [sortBy, setSortBy] = useState('default');
+  const [changelogProject, setChangelogProject] = useState(null);
+  const [changelogEntry, setChangelogEntry] = useState('');
 
   const fetchProjects = async () => {
     let all = await getAll('projects');
     if (filter) all = all.filter(p => p.category === filter);
     if (search) all = all.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    all = all.filter(p => showArchived ? p.archived : !p.archived);
+    // Sort: pinned first, then by sortBy
+    all.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    if (sortBy === 'name') all.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || a.name.localeCompare(b.name));
+    else if (sortBy === 'progress') all.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.progress - a.progress);
+    else if (sortBy === 'deadline') all.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (a.deadline || 'z').localeCompare(b.deadline || 'z'));
     setProjects(all);
   };
 
-  useEffect(() => { fetchProjects(); }, [filter, search]);
+  useEffect(() => { fetchProjects(); }, [filter, search, showArchived, sortBy]);
 
   if (projects === null) return <ProjectsSkeleton />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = { ...form, techStack: typeof form.techStack === 'string' ? form.techStack.split(',').map(s => s.trim()).filter(Boolean) : form.techStack, progress: Number(form.progress) };
+    const data = { ...form, techStack: typeof form.techStack === 'string' ? form.techStack.split(',').map(s => s.trim()).filter(Boolean) : form.techStack, tags: typeof form.tags === 'string' ? form.tags.split(',').map(s => s.trim()).filter(Boolean) : form.tags, progress: Number(form.progress) };
     try {
       if (editing) { await update('projects', editing, data); toast.success('Updated! ⚡'); }
       else { await create('projects', data); toast.success('Created! 🚀'); }
@@ -63,7 +73,16 @@ export default function Projects() {
     } catch { toast.error('Error'); }
   };
 
-  const handleEdit = (p) => { setForm({ ...p, techStack: p.techStack?.join(', ') || '' }); setEditing(p.id); setShowForm(true); };
+  const handleEdit = (p) => { setForm({ ...p, techStack: p.techStack?.join(', ') || '', tags: p.tags?.join(', ') || '' }); setEditing(p.id); setShowForm(true); };
+  const togglePin = async (p) => { await update('projects', p.id, { pinned: !p.pinned }); toast.success(p.pinned ? 'Unpinned' : 'Pinned 📌'); fetchProjects(); };
+  const toggleArchive = async (p) => { await update('projects', p.id, { archived: !p.archived }); toast.success(p.archived ? 'Restored' : 'Archived 📦'); fetchProjects(); };
+  const addChangelog = async () => {
+    if (!changelogEntry.trim()) return;
+    const p = projects.find(x => x.id === changelogProject);
+    const log = [...(p.changelog || []), { text: changelogEntry, date: new Date().toISOString().split('T')[0] }];
+    await update('projects', changelogProject, { changelog: log });
+    setChangelogEntry(''); toast.success('Changelog added'); fetchProjects();
+  };
   const handleDelete = async () => { await remove('projects', confirmDelete); setConfirmDelete(null); toast.success('Deleted'); fetchProjects(); };
 
   const statusConfig = {
@@ -101,7 +120,7 @@ export default function Projects() {
         </motion.button>
       </motion.div>
 
-      {/* Search + Filters */}
+      {/* Search + Filters + Sort + Archive Toggle */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="flex gap-3 mb-8 flex-wrap items-center">
         <div className="relative flex-1 max-w-xs">
@@ -118,6 +137,17 @@ export default function Projects() {
             </motion.button>
           ))}
         </div>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+          className="bg-surface-3 px-3 py-2 rounded-lg text-[10px] font-mono border border-border-subtle outline-none">
+          <option value="default">Sort: Default</option>
+          <option value="name">Sort: Name</option>
+          <option value="progress">Sort: Progress</option>
+          <option value="deadline">Sort: Deadline</option>
+        </select>
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowArchived(!showArchived)}
+          className={`px-3 py-2 rounded-lg text-[10px] font-mono border flex items-center gap-1.5 transition-all ${showArchived ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-surface-3 border-border-subtle text-zinc-500 hover:text-zinc-200'}`}>
+          <Archive size={12} /> {showArchived ? 'Archived' : 'Active'}
+        </motion.button>
       </motion.div>
 
       {/* Form */}
@@ -149,6 +179,8 @@ export default function Projects() {
                 <input type="number" placeholder="progress: number" min="0" max="100" value={form.progress} onChange={e => setForm({ ...form, progress: +e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
                 <input placeholder="liveUrl: string" value={form.liveLink} onChange={e => setForm({ ...form, liveLink: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
                 <input placeholder="githubUrl: string" value={form.githubLink} onChange={e => setForm({ ...form, githubLink: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+                <input placeholder="tags: string[] (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" />
+                <input type="date" placeholder="deadline" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm font-mono" />
                 <textarea placeholder="description: string" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm md:col-span-2 placeholder:text-zinc-600 font-mono" rows={2} />
                 <textarea placeholder="challenges: string" value={form.challenges} onChange={e => setForm({ ...form, challenges: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" rows={2} />
                 <textarea placeholder="learnings: string" value={form.learnings} onChange={e => setForm({ ...form, learnings: e.target.value })} className="bg-surface-3 px-4 py-3.5 rounded-xl outline-none border border-border-subtle focus:border-primary/40 text-sm placeholder:text-zinc-600 font-mono" rows={2} />
@@ -173,7 +205,8 @@ export default function Projects() {
                   <div className={`absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r ${statusConfig[p.status].gradient} opacity-60 rounded-full`} />
                   <div className="tilt-shine" />
 
-                  {/* Header */}
+                  {/* Pinned + Header */}
+                  {p.pinned && <div className="absolute top-2 right-2 text-amber-400 z-20"><Pin size={12} /></div>}
                   <div className="flex justify-between items-start mb-4 relative z-10">
                     <div className="flex items-center gap-2.5">
                       <motion.span whileHover={{ scale: 1.3, rotate: 10 }} className="text-xl cursor-default">{statusConfig[p.status].icon}</motion.span>
@@ -189,6 +222,15 @@ export default function Projects() {
                     <span className="code-comment">// </span>{p.description || 'no description'}
                   </p>
 
+                  {/* Tags */}
+                  {(p.tags || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2 relative z-10">
+                      {p.tags.map(tag => (
+                        <span key={tag} className="text-[8px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300 font-mono border border-violet-500/20">#{tag}</span>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Tech Stack */}
                   <div className="flex flex-wrap gap-1.5 mb-4 relative z-10">
                     {(p.techStack || []).slice(0, 4).map(t => (
@@ -199,6 +241,15 @@ export default function Projects() {
                     ))}
                     {(p.techStack || []).length > 4 && <span className="text-[9px] text-zinc-600 font-mono self-center">+{p.techStack.length - 4}</span>}
                   </div>
+
+                  {/* Deadline */}
+                  {p.deadline && (
+                    <div className={`flex items-center gap-1.5 mb-3 relative z-10 text-[9px] font-mono ${new Date(p.deadline) < new Date() && p.status !== 'completed' && p.status !== 'deployed' ? 'text-rose-400' : 'text-zinc-500'}`}>
+                      <Clock size={10} />
+                      <span>{p.deadline}</span>
+                      {new Date(p.deadline) < new Date() && p.status !== 'completed' && p.status !== 'deployed' && <span className="text-[8px] px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400">OVERDUE</span>}
+                    </div>
+                  )}
 
                   {/* Progress */}
                   <div className="mb-4 relative z-10">
@@ -230,6 +281,18 @@ export default function Projects() {
                       )}
                     </div>
                     <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <motion.button whileHover={{ scale: 1.2 }} onClick={() => togglePin(p)} title={p.pinned ? 'Unpin' : 'Pin'}
+                        className={`w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center transition-all ${p.pinned ? 'text-amber-400' : 'text-zinc-500 hover:text-amber-400 hover:bg-amber-400/10'}`}>
+                        <Pin size={12} />
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.2 }} onClick={() => toggleArchive(p)} title={p.archived ? 'Restore' : 'Archive'}
+                        className="w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center text-zinc-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all">
+                        <Archive size={12} />
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.2 }} onClick={() => setChangelogProject(changelogProject === p.id ? null : p.id)} title="Changelog"
+                        className="w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center text-zinc-500 hover:text-cyan-400 hover:bg-cyan-400/10 transition-all">
+                        <History size={12} />
+                      </motion.button>
                       <motion.button whileHover={{ scale: 1.2 }} onClick={() => handleEdit(p)}
                         className="w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center text-zinc-500 hover:text-primary hover:bg-primary/10 transition-all">
                         <Pencil size={12} />
@@ -240,6 +303,30 @@ export default function Projects() {
                       </motion.button>
                     </div>
                   </div>
+
+                  {/* Changelog Panel */}
+                  <AnimatePresence>
+                    {changelogProject === p.id && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        className="mt-3 pt-3 border-t border-white/[0.04] relative z-10 overflow-hidden">
+                        <div className="flex gap-2 mb-2">
+                          <input placeholder="What changed?" value={changelogEntry} onChange={e => setChangelogEntry(e.target.value)}
+                            className="flex-1 bg-surface-3 px-3 py-1.5 rounded-lg text-[10px] font-mono outline-none border border-border-subtle focus:border-cyan-400/40" />
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={addChangelog}
+                            className="px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/20">+Add</motion.button>
+                        </div>
+                        <div className="max-h-24 overflow-y-auto space-y-1">
+                          {(p.changelog || []).slice().reverse().map((c, i) => (
+                            <div key={i} className="text-[9px] font-mono text-zinc-500 flex gap-2">
+                              <span className="text-zinc-600">{c.date}</span>
+                              <span className="text-zinc-400">{c.text}</span>
+                            </div>
+                          ))}
+                          {(!p.changelog || p.changelog.length === 0) && <p className="text-[9px] text-zinc-600 font-mono">No changelog entries</p>}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </SpotlightCard>
             </TiltCard>
