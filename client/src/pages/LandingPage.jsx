@@ -55,8 +55,7 @@ export default function LandingPage() {
         </motion.p>
 
         {/* CTA Buttons */}
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-          className="flex flex-col sm:flex-row gap-3 mt-10">
+        <div className="flex flex-col sm:flex-row gap-3 mt-10">
           <button
             onClick={loginGoogle}
             className="px-8 py-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-3 bg-white text-[#1a1a2e] shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95 transition-transform">
@@ -76,7 +75,7 @@ export default function LandingPage() {
             </svg>
             Continue with GitHub
           </button>
-        </motion.div>
+        </div>
 
         {/* Scroll indicator */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
