@@ -17,6 +17,7 @@ const typeConfig = {
 export default function Notifications() {
   const [notifications, setNotifications] = useState(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmMarkAll, setConfirmMarkAll] = useState(false);
 
   const generateNotifications = async () => {
     // Fetch existing saved notifications
@@ -143,7 +144,7 @@ export default function Notifications() {
         {/* Actions */}
         <div className="flex gap-2">
           {unread.length > 0 && (
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={markAllRead}
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setConfirmMarkAll(true)}
               className="px-4 py-2.5 rounded-xl text-[11px] font-mono flex items-center gap-2 bg-[#43e97b]/10 border border-[#43e97b]/20 text-[#43e97b] hover:bg-[#43e97b]/15 transition-all">
               <CheckCheck size={13} /> Mark all read
             </motion.button>
@@ -265,6 +266,8 @@ export default function Notifications() {
         </motion.div>
       )}
 
+      <ConfirmModal open={confirmClear} onConfirm={clearAll} onCancel={() => setConfirmClear(false)}
+        title="Mark all as read?" message="All notifications will be marked as read." confirmText="Mark All" variant="warning" />
       <ConfirmModal open={confirmClear} onConfirm={clearAll} onCancel={() => setConfirmClear(false)}
         title="Clear all notifications?" message="All notifications will be permanently deleted." confirmText="Clear All" />
     </div>

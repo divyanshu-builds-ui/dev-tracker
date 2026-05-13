@@ -23,14 +23,37 @@ export default function Settings() {
   const [badges, setBadges] = useState([]);
   const [profilePublished, setProfilePublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const [confirmSave, setConfirmSave] = useState(false);
   const [referralStats, setReferralStats] = useState({ count: 0, xpBonus: 0 });
 
   useEffect(() => {
+    if (!user) return;
     (async () => {
       const docs = await getAll('profile', {}, 'createdAt', 1);
       if (docs.length) {
         setDocId(docs[0].id);
-        setForm({ name: docs[0].name || '', role: docs[0].role || '', initials: docs[0].initials || '', bio: docs[0].bio || '', github: docs[0].github || '', linkedin: docs[0].linkedin || '', portfolio: docs[0].portfolio || '', twitter: docs[0].twitter || '', location: docs[0].location || '', techStack: docs[0].techStack || '', experience: docs[0].experience || '', availableForHire: docs[0].availableForHire || false });
+        setForm({
+          name: docs[0].name || user.displayName || '',
+          role: docs[0].role || '',
+          initials: docs[0].initials || (user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : ''),
+          bio: docs[0].bio || '',
+          github: docs[0].github || '',
+          linkedin: docs[0].linkedin || '',
+          portfolio: docs[0].portfolio || '',
+          twitter: docs[0].twitter || '',
+          location: docs[0].location || '',
+          techStack: docs[0].techStack || '',
+          experience: docs[0].experience || '',
+          availableForHire: docs[0].availableForHire || false,
+        });
+      } else {
+        // First time — pre-fill from Google/GitHub auth
+        setForm(prev => ({
+          ...prev,
+          name: user.displayName || '',
+          initials: user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '',
+        }));
       }
       setProfile(true);
 
@@ -55,15 +78,14 @@ export default function Settings() {
       const refSnap = await getDoc(doc(db, 'users', auth.currentUser.uid, 'profile', 'referralStats'));
       if (refSnap.exists()) setReferralStats(refSnap.data());
     })();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const saveProfile = async (e) => {
-    e.preventDefault();
+  const saveProfile = async () => {
     if (docId) {
       await update('profile', docId, form);
     } else {
@@ -308,15 +330,19 @@ export default function Settings() {
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">edit profile</span>
           </div>
 
-          <form onSubmit={saveProfile} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); setConfirmSave(true); }} className="space-y-4">
             {/* Avatar preview */}
             <div className="flex items-center gap-4 mb-2">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', boxShadow: '0 8px 25px rgba(102,126,234,0.3)' }}>
-                {form.initials || 'DG'}
-              </div>
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-16 h-16 rounded-2xl object-cover border-2 border-white/[0.06]" />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white shadow-lg"
+                  style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', boxShadow: '0 8px 25px rgba(102,126,234,0.3)' }}>
+                  {form.initials || user?.displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DV'}
+                </div>
+              )}
               <div>
-                <p className="text-sm font-semibold text-zinc-200">{form.name || 'Your Name'}</p>
+                <p className="text-sm font-semibold text-zinc-200">{form.name || user?.displayName || 'Your Name'}</p>
                 <p className="text-[10px] font-mono text-zinc-500">{form.role || 'Developer'}</p>
               </div>
             </div>
@@ -389,7 +415,7 @@ export default function Settings() {
           <div className="mt-6 pt-5 border-t border-white/[0.04]">
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">public profile</span>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={publishProfile} disabled={publishing}
+              onClick={() => setConfirmPublish(true)} disabled={publishing}
               className="w-full mt-3 py-2.5 rounded-xl text-[11px] font-mono flex items-center justify-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all disabled:opacity-50">
               {publishing ? "Publishing..." : profilePublished ? "✓ Published" : "🌐 Publish Profile"}
             </motion.button>
@@ -560,6 +586,10 @@ export default function Settings() {
         title="Export all data?" message="All your data will be downloaded as a JSON file." confirmText="Export" variant="warning" />
       <ConfirmModal open={confirmLogout} onConfirm={logout} onCancel={() => setConfirmLogout(false)}
         title="Logout?" message="Are you sure you want to logout?" confirmText="Logout" />
+      <ConfirmModal open={confirmPublish} onConfirm={() => { setConfirmPublish(false); publishProfile(); }} onCancel={() => setConfirmPublish(false)}
+        title="Publish profile?" message="Your stats will be visible to anyone with the link." confirmText="Publish" variant="warning" />
+      <ConfirmModal open={confirmSave} onConfirm={() => { setConfirmSave(false); saveProfile(); }} onCancel={() => setConfirmSave(false)}
+        title="Save profile?" message="Your profile information will be updated." confirmText="Save" variant="warning" />
     </div>
   );
 }

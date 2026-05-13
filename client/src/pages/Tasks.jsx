@@ -27,6 +27,7 @@ export default function Tasks() {
   const [bulkMode, setBulkMode] = useState(false);
   const [confirmUndone, setConfirmUndone] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   const fetchTasks = async () => {
     const all = await getAll('tasks');
@@ -219,7 +220,7 @@ export default function Tasks() {
           <div className="flex gap-2">
             <button onClick={selectAll} className="text-[10px] font-mono text-primary hover:text-white transition-colors">Select All</button>
             <button onClick={bulkMarkDone} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Mark Done"}</button>
-            <button onClick={bulkDelete} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Delete"}</button>
+            <button onClick={() => setConfirmBulkDelete(true)} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Delete"}</button>
             <button onClick={clearSelection} className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300">Cancel</button>
           </div>
         </motion.div>
@@ -346,6 +347,8 @@ export default function Tasks() {
       <ConfirmModal open={!!confirmDelete} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)}
         title="Delete task?" message="This task will be permanently deleted." confirmText="Delete" />
       <ConfirmModal open={!!confirmUndone} onConfirm={confirmMarkPending} onCancel={() => setConfirmUndone(null)}
+        title="Delete selected tasks?" message="All selected tasks will be permanently deleted." confirmText="Delete All" />
+      <ConfirmModal open={confirmBulkDelete} onConfirm={() => { setConfirmBulkDelete(false); bulkDelete(); }} onCancel={() => setConfirmBulkDelete(false)}
         title="Mark as pending?" message="Are you sure you want to move this task back to pending?" confirmText="Undo" variant="warning" />
 
       {/* Empty */}

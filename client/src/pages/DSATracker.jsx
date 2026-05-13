@@ -34,6 +34,7 @@ export default function DSATracker() {
   const [bulkMode, setBulkMode] = useState(false);
   const [confirmUndone, setConfirmUndone] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [confirmLoad, setConfirmLoad] = useState(false);
 
   const fetchQuestions = async () => {
@@ -293,7 +294,7 @@ export default function DSATracker() {
           <div className="flex gap-2">
             <button onClick={selectAll} className="text-[10px] font-mono text-primary hover:text-white transition-colors">Select All</button>
             <button onClick={bulkMarkSolved} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Mark Solved"}</button>
-            <button onClick={bulkDelete} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Delete"}</button>
+            <button onClick={() => setConfirmBulkDelete(true)} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Delete"}</button>
             <button onClick={clearSelection} className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300">Cancel</button>
           </div>
         </motion.div>
@@ -356,6 +357,8 @@ export default function DSATracker() {
       <ConfirmModal open={confirmLoad} onConfirm={loadStarterPack} onCancel={() => setConfirmLoad(false)}
         title="Load Blind 75?" message="This will add 60+ DSA questions to your list." confirmText="Load" variant="warning" />
       <ConfirmModal open={!!confirmUndone} onConfirm={confirmMarkUnsolved} onCancel={() => setConfirmUndone(null)}
+        title="Delete selected questions?" message="All selected questions will be permanently deleted." confirmText="Delete All" />
+      <ConfirmModal open={confirmBulkDelete} onConfirm={() => { setConfirmBulkDelete(false); bulkDelete(); }} onCancel={() => setConfirmBulkDelete(false)}
         title="Mark as unsolved?" message="Are you sure you want to mark this question as unsolved?" confirmText="Unsolved" variant="warning" />
 
       {/* Empty */}
