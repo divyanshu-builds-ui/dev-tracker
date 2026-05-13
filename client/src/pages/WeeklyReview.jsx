@@ -7,6 +7,8 @@ import { Calendar, Clock, CheckCircle2, Target, Flame, Brain, Code2, TrendingUp,
 export default function WeeklyReview() {
   const [data, setData] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [sharing, setSharing] = useState(false);
+  const [pdfing, setPdfing] = useState(false);
   const cardRef = useState(null);
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function WeeklyReview() {
   ];
 
   const shareCard = async () => {
+    setSharing(true);
     const { toPng } = await import('html-to-image');
     const el = document.getElementById('share-card');
     if (!el) return;
@@ -112,11 +115,13 @@ export default function WeeklyReview() {
     } catch (err) {
       console.error(err);
       toast.error('Failed to generate card');
+    setSharing(false);
     }
     el.style.display = 'none';
   };
 
   const exportPDF = async () => {
+    setPdfing(true);
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
 
@@ -207,6 +212,7 @@ export default function WeeklyReview() {
 
     doc.save(`weekly-review-${weekStart.toISOString().split('T')[0]}.pdf`);
     toast.success('PDF exported!');
+    setPdfing(false);
   };
 
   return (
@@ -226,13 +232,13 @@ export default function WeeklyReview() {
           </h2>
         </div>
         <div className="flex gap-2">
-          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={shareCard}
-            className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all">
-            <Share2 size={14} /> Share Card
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={shareCard} disabled={sharing}
+            className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all disabled:opacity-50">
+            <Share2 size={14} /> {sharing ? "Generating..." : "Share Card"}
           </motion.button>
-          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={exportPDF}
-            className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all">
-            <FileDown size={14} /> Export PDF
+          <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={exportPDF} disabled={pdfing}
+            className="px-5 py-3 rounded-xl text-sm font-mono flex items-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all disabled:opacity-50">
+            <FileDown size={14} /> {pdfing ? "Generating..." : "Export PDF"}
           </motion.button>
         </div>
       </motion.div>

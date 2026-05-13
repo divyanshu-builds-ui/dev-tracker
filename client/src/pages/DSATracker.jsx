@@ -33,6 +33,7 @@ export default function DSATracker() {
   const [selected, setSelected] = useState([]);
   const [bulkMode, setBulkMode] = useState(false);
   const [confirmUndone, setConfirmUndone] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [confirmLoad, setConfirmLoad] = useState(false);
 
   const fetchQuestions = async () => {
@@ -86,16 +87,20 @@ export default function DSATracker() {
   const clearSelection = () => { setSelected([]); setBulkMode(false); };
 
   const bulkMarkSolved = async () => {
+    setBulkLoading(true);
     for (const id of selected) await update('dsa', id, { solved: true });
     toast.success(`${selected.length} questions solved! 🎉`);
     clearSelection();
+    setBulkLoading(false);
     fetchQuestions();
   };
 
   const bulkDelete = async () => {
+    setBulkLoading(true);
     for (const id of selected) await remove('dsa', id);
     toast.success(`${selected.length} questions deleted`);
     clearSelection();
+    setBulkLoading(false);
     fetchQuestions();
   };
 
@@ -287,8 +292,8 @@ export default function DSATracker() {
           <span className="text-[11px] font-mono text-zinc-300">{selected.length} selected</span>
           <div className="flex gap-2">
             <button onClick={selectAll} className="text-[10px] font-mono text-primary hover:text-white transition-colors">Select All</button>
-            <button onClick={bulkMarkSolved} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20">Mark Solved</button>
-            <button onClick={bulkDelete} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20">Delete</button>
+            <button onClick={bulkMarkSolved} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Mark Solved"}</button>
+            <button onClick={bulkDelete} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Delete"}</button>
             <button onClick={clearSelection} className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300">Cancel</button>
           </div>
         </motion.div>

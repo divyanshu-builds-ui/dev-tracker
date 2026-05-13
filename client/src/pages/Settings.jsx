@@ -16,11 +16,13 @@ export default function Settings() {
   const [form, setForm] = useState({ name: '', role: '', initials: '', bio: '', github: '', linkedin: '', portfolio: '', twitter: '', location: '', techStack: '', experience: '', availableForHire: false });
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [exporting, setExporting] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const [confirmExport, setConfirmExport] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [importing, setImporting] = useState(false);
   const [badges, setBadges] = useState([]);
   const [profilePublished, setProfilePublished] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [referralStats, setReferralStats] = useState({ count: 0, xpBonus: 0 });
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export default function Settings() {
   };
 
   const exportPDF = async () => {
+    setPdfExporting(true);
     try {
       const [projects, skills, logs, goals, tasks] = await Promise.all([
         getAll('projects'), getAll('skills'), getAll('logs', {}, 'createdAt', 100),
@@ -194,6 +197,7 @@ export default function Settings() {
       doc.save(`dev-tracker-report-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success('PDF exported!');
     } catch { toast.error('PDF export failed'); }
+    setPdfExporting(false);
   };
 
   const importData = async (e) => {
@@ -223,6 +227,7 @@ export default function Settings() {
   };
 
   const publishProfile = async () => {
+    setPublishing(true);
     try {
       const [projects, skills, logs, goals, dsa] = await Promise.all([
         getAll('projects'), getAll('skills'), getAll('logs', {}, 'createdAt', 60), getAll('goals'), getAll('dsa', {}, 'createdAt', 500)
@@ -267,6 +272,7 @@ export default function Settings() {
       setProfilePublished(true);
       toast.success('Profile published!');
     } catch { toast.error('Failed to publish'); }
+    setPublishing(false);
   };
 
   if (!profile) return (
@@ -383,9 +389,9 @@ export default function Settings() {
           <div className="mt-6 pt-5 border-t border-white/[0.04]">
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">public profile</span>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={publishProfile}
-              className="w-full mt-3 py-2.5 rounded-xl text-[11px] font-mono flex items-center justify-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all">
-              {profilePublished ? "✓ Published" : "🌐 Publish Profile"}
+              onClick={publishProfile} disabled={publishing}
+              className="w-full mt-3 py-2.5 rounded-xl text-[11px] font-mono flex items-center justify-center gap-2 bg-[#f093fb]/10 border border-[#f093fb]/20 text-[#f093fb] hover:bg-[#f093fb]/15 transition-all disabled:opacity-50">
+              {publishing ? "Publishing..." : profilePublished ? "✓ Published" : "🌐 Publish Profile"}
             </motion.button>
             {profilePublished && (
               <div className="mt-2 flex items-center gap-2">
@@ -447,9 +453,9 @@ export default function Settings() {
               </motion.button>
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={exportPDF}
-                className="w-full py-3 rounded-xl text-sm font-mono font-medium flex items-center justify-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all">
-                <FileDown size={14} /> Export PDF Report
+                onClick={exportPDF} disabled={pdfExporting}
+                className="w-full py-3 rounded-xl text-sm font-mono font-medium flex items-center justify-center gap-2 bg-[#667eea]/10 border border-[#667eea]/20 text-[#667eea] hover:bg-[#667eea]/15 transition-all disabled:opacity-50">
+                <FileDown size={14} /> {pdfExporting ? "Generating..." : "Export PDF Report"}
               </motion.button>
 
               <label className="w-full py-3 rounded-xl text-sm font-mono font-medium flex items-center justify-center gap-2 bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#f59e0b] hover:bg-[#f59e0b]/15 transition-all cursor-pointer">

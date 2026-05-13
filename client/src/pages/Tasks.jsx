@@ -26,6 +26,7 @@ export default function Tasks() {
   const [selected, setSelected] = useState([]);
   const [bulkMode, setBulkMode] = useState(false);
   const [confirmUndone, setConfirmUndone] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const fetchTasks = async () => {
     const all = await getAll('tasks');
@@ -80,16 +81,20 @@ export default function Tasks() {
   const clearSelection = () => { setSelected([]); setBulkMode(false); };
 
   const bulkMarkDone = async () => {
+    setBulkLoading(true);
     for (const id of selected) await update('tasks', id, { status: 'done' });
     toast.success(`${selected.length} tasks completed! 🎉`);
     clearSelection();
+    setBulkLoading(false);
     fetchTasks();
   };
 
   const bulkDelete = async () => {
+    setBulkLoading(true);
     for (const id of selected) await remove('tasks', id);
     toast.success(`${selected.length} tasks deleted`);
     clearSelection();
+    setBulkLoading(false);
     fetchTasks();
   };
 
@@ -213,8 +218,8 @@ export default function Tasks() {
           <span className="text-[11px] font-mono text-zinc-300">{selected.length} selected</span>
           <div className="flex gap-2">
             <button onClick={selectAll} className="text-[10px] font-mono text-primary hover:text-white transition-colors">Select All</button>
-            <button onClick={bulkMarkDone} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20">Mark Done</button>
-            <button onClick={bulkDelete} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20">Delete</button>
+            <button onClick={bulkMarkDone} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#43e97b]/15 text-[#43e97b] border border-[#43e97b]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Mark Done"}</button>
+            <button onClick={bulkDelete} disabled={bulkLoading} className="text-[10px] font-mono px-3 py-1.5 rounded-lg bg-[#f5576c]/15 text-[#f5576c] border border-[#f5576c]/20 disabled:opacity-50">{bulkLoading ? "Processing..." : "Delete"}</button>
             <button onClick={clearSelection} className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300">Cancel</button>
           </div>
         </motion.div>
