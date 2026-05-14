@@ -103,6 +103,83 @@ service cloud.firestore {
 
 ---
 
+## 📂 Folder Structure
+
+```
+Dev Tracker/
+├── client/
+│   ├── api/
+│   │   └── feedback.js          # Serverless function (Vercel)
+│   ├── public/
+│   │   ├── logo-brand.svg
+│   │   ├── manifest.json        # PWA manifest
+│   │   └── sw.js                # Service worker
+│   ├── src/
+│   │   ├── assets/styles/       # Global styles
+│   │   ├── components/          # Shared UI components
+│   │   │   ├── AuthContext.jsx
+│   │   │   ├── ConfirmModal.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── LoadingProvider.jsx
+│   │   │   ├── Logo.jsx
+│   │   │   ├── MobileNav.jsx
+│   │   │   ├── NotificationPanel.jsx
+│   │   │   ├── OfflineIndicator.jsx
+│   │   │   ├── OnboardingTour.jsx
+│   │   │   ├── SearchModal.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── Skeletons.jsx
+│   │   │   └── useKeyboardShortcuts.js
+│   │   ├── pages/               # All app pages
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Projects.jsx
+│   │   │   ├── Tasks.jsx
+│   │   │   ├── Skills.jsx
+│   │   │   ├── DailyLogs.jsx
+│   │   │   ├── Goals.jsx
+│   │   │   ├── Roadmap.jsx
+│   │   │   ├── Resources.jsx
+│   │   │   ├── Analytics.jsx
+│   │   │   ├── Pomodoro.jsx
+│   │   │   ├── Snippets.jsx
+│   │   │   ├── GitHub.jsx
+│   │   │   ├── Kanban.jsx
+│   │   │   ├── Notes.jsx
+│   │   │   ├── DSATracker.jsx
+│   │   │   ├── Habits.jsx
+│   │   │   ├── WeeklyReview.jsx
+│   │   │   ├── Certifications.jsx
+│   │   │   ├── Notifications.jsx
+│   │   │   ├── Settings.jsx
+│   │   │   ├── Feedback.jsx
+│   │   │   ├── LandingPage.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── PublicProfile.jsx
+│   │   │   ├── Guide.jsx
+│   │   │   └── NotFound.jsx
+│   │   ├── utils/               # Helper functions & data
+│   │   │   ├── confetti.js
+│   │   │   ├── dsaData.js
+│   │   │   ├── resourcesData.js
+│   │   │   ├── roadmapData.js
+│   │   │   ├── skillsData.js
+│   │   │   └── xp.js
+│   │   ├── App.jsx              # Main app with routing
+│   │   ├── api.js               # API helpers
+│   │   ├── firebase.js          # Firebase config
+│   │   ├── index.css            # Tailwind entry
+│   │   └── main.jsx             # React entry point
+│   ├── index.html
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── vite.config.js
+│   └── vercel.json
+├── firestore.rules
+└── README.md
+```
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Tech |
